@@ -91,13 +91,14 @@ else
         > "$log_file" 2>&1 \
         & echo $! > "$PID_FILE"
     sleep 3
-    if ! pgrep --pidfile "$PID_FILE"; then
+    if ! pgrep --pidfile "$PID_FILE" > /dev/null; then
         cat "$log_file"
         echo
         exit 1
     fi
 
-    echo "Remote SSH port forwarding (remote $port -> local 22) is running at PID $pid"
+    printf "Remote SSH port forwarding (remote %d -> local 22) is running (PID %d).\\n" \
+        "$port" "$(cat "$PID_FILE")"
 fi
 
-echo "Command completed succeeded."
+printf "Command completed succeeded.\\n\\n"
