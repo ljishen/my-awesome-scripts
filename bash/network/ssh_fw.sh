@@ -78,9 +78,13 @@ else
     # privileged port requires root so it is not allowed.
     # https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html
     # https://linux.die.net/man/1/ssh
-    if [ "$EUID" -ne 0 ] && [ "$port" -lt 1024 ]; then
-        printf "Forwarding to privileged port (1-1023) requires sudo.\\n\\n"
-        exit 1
+    if [ "$port" -lt 1024 ]; then
+        if [ "$EUID" -ne 0 ]; then
+            printf "Forwarding to privileged port (1-1023) requires sudo.\\n\\n"
+            exit 1
+        fi
+
+        echo "WARNING: forwarding to privileged port is not guaranteed to work."
     fi
 
     log_file="$(pwd)/ssh_fw.log"
