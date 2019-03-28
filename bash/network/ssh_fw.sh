@@ -33,9 +33,10 @@ args=( "$@" )
 
 function usage {
     printf "usage: %s [REMOTE] start|stop
-\tREMOTE:\t[user@]bind_address[:port]
+\\tREMOTE:\\t[user@]bind_address[:port]
 
 REMOTE is required when start this service.
+
 " "$script"
     exit 1
 }
@@ -77,17 +78,22 @@ else
     # privileged port requires root so it is not allowed.
     # https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html
     # https://linux.die.net/man/1/ssh
-    if [ "$port" -lt 1024 ]; then
-        echo "Not allow to forward to privileged port (1-1023)"
+    if [ "$EUID" -ne 0 ] && [ "$port" -lt 1024 ]; then
+        printf "Forwarding to privileged port (1-1023) requires sudo.\\n\\n"
         exit 1
     fi
 
     log_file="$(pwd)/ssh_fw.log"
-    nohup ssh -o PasswordAuthentication=no -N "$bind_address" -R "$port":localhost:22 > "$log_file" & echo $! > "$PID_FILE"
+    nohup ssh -o PasswordAuthentication=no \
+        -N "$bind_address" \
+        -R "$port":localhost:22 \
+        < /dev/null \
+        > "$log_file" 2>&1 \
+        & echo $! > "$PID_FILE"
     sleep 3
-    pid="$(cat "$PID_FILE")"
-    if ! ps -p "$pid" > /dev/null; then
+    if ! pgrep --pidfile "$PID_FILE"; then
         cat "$log_file"
+        echo
         exit 1
     fi
 
