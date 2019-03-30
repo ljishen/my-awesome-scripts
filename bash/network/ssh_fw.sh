@@ -87,7 +87,7 @@ else
         echo "WARNING: forwarding to privileged port is not guaranteed to work."
     fi
 
-    log_file="$(pwd)/ssh_fw.log"
+    log_file="/tmp/ssh_fw.log"
     nohup ssh -o PasswordAuthentication=no \
         -N "$bind_address" \
         -R "$port":localhost:22 \
