@@ -1,13 +1,17 @@
 [Unit]
 Description=Remote SSH Login Service
 After=network.target
+Before=nss-lookup.target
+Wants=nss-lookup.target
 
 [Service]
+Type=oneshot
+ExecStartPre=/bin/bash -c 'until host piha.soe.ucsc.edu; do sleep 1; done'
 ExecStart=/home/pi/bin/my-awesome-scripts/bash/network/ssh_fw.sh ljishen@piha.soe.ucsc.edu start
+RemainAfterExit=true
 WorkingDirectory=/home/pi
 StandardOutput=inherit
 StandardError=inherit
-Restart=always
 User=pi
 
 [Install]
