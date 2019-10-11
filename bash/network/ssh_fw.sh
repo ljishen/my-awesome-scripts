@@ -25,84 +25,83 @@
 # Run this script on the host that you want to forward the SSH connection
 # (port 22) to from the remote address.
 
-
 set -eu -o pipefail
 
 script="$(basename "$0")"
-args=( "$@" )
+args=("$@")
 
-function usage {
-    printf "usage: %s [REMOTE] start|stop
+function usage() {
+  printf "usage: %s [REMOTE] start|stop
 \\tREMOTE:\\t[user@]bind_address[:port]
 
 REMOTE is required when start this service.
 
 " "$script"
-    exit 1
+  exit 1
 }
 
 args_len="${#args[@]}"
 if [ "$args_len" -lt 1 ]; then
-    usage
+  usage
 fi
 
 action="${args[-1]}"
 if [ "$action" != "start" ] && [ "$action" != "stop" ]; then
-    usage
+  usage
 fi
 
 PID_FILE="$HOME"/.ssh_fw_pid
 
 if [ "$action" == "stop" ]; then
-    if [ -f "$PID_FILE" ]; then
-        pid="$(cat "$PID_FILE")"
-        if kill -SIGKILL "$pid" &> /dev/null; then
-            echo "PID $pid has stopped."
-        fi
-        rm -f "$PID_FILE"
+  if [ -f "$PID_FILE" ]; then
+    pid="$(cat "$PID_FILE")"
+    if kill -SIGKILL "$pid" &> /dev/null; then
+      echo "PID $pid has stopped."
     fi
+    rm -f "$PID_FILE"
+  fi
 else
-    # action start
+  # action start
 
-    if [ "$args_len" -ne 2 ]; then
-        usage
+  if [ "$args_len" -ne 2 ]; then
+    usage
+  fi
+
+  bind_address="${args[0]}"
+  port=8111
+  if [[ $bind_address == *:* ]]; then
+    port="$(grep -oP ':\K\d+' <<< "$bind_address")"
+    bind_address="${bind_address%:*}"
+  fi
+
+  # privileged port requires root so it is not allowed.
+  # https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html
+  # https://linux.die.net/man/1/ssh
+  if [ "$port" -lt 1024 ]; then
+    if [ "$EUID" -ne 0 ]; then
+      printf "Forwarding to privileged port (1-1023) requires sudo.\\n\\n"
+      exit 1
     fi
 
-    bind_address="${args[0]}"
-    port=8111
-    if [[ $bind_address == *:* ]]; then
-        port="$(grep -oP ':\K\d+' <<< "$bind_address")"
-        bind_address="${bind_address%:*}"
-    fi
+    echo "WARNING: forwarding to privileged port is not guaranteed to work."
+  fi
 
-    # privileged port requires root so it is not allowed.
-    # https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html
-    # https://linux.die.net/man/1/ssh
-    if [ "$port" -lt 1024 ]; then
-        if [ "$EUID" -ne 0 ]; then
-            printf "Forwarding to privileged port (1-1023) requires sudo.\\n\\n"
-            exit 1
-        fi
+  log_file="/tmp/ssh_fw.log"
+  nohup ssh -o PasswordAuthentication=no \
+    -N "$bind_address" \
+    -R "$port":localhost:22 \
+    < /dev/null \
+    > "$log_file" 2>&1
+  echo $! > "$PID_FILE"
+  sleep 3
+  if ! pgrep --pidfile "$PID_FILE" > /dev/null; then
+    cat "$log_file"
+    echo
+    exit 1
+  fi
 
-        echo "WARNING: forwarding to privileged port is not guaranteed to work."
-    fi
-
-    log_file="/tmp/ssh_fw.log"
-    nohup ssh -o PasswordAuthentication=no \
-        -N "$bind_address" \
-        -R "$port":localhost:22 \
-        < /dev/null \
-        > "$log_file" 2>&1 \
-        & echo $! > "$PID_FILE"
-    sleep 3
-    if ! pgrep --pidfile "$PID_FILE" > /dev/null; then
-        cat "$log_file"
-        echo
-        exit 1
-    fi
-
-    printf "Remote SSH port forwarding (remote %d -> local 22) is running (PID %d).\\n" \
-        "$port" "$(cat "$PID_FILE")"
+  printf "Remote SSH port forwarding (remote %d -> local 22) is running (PID %d).\\n" \
+    "$port" "$(cat "$PID_FILE")"
 fi
 
 printf "Command completed succeeded.\\n\\n"
