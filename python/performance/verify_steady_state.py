@@ -22,8 +22,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-
 """Script to verify if the input values satisfy the criteria of steady state.
 
 Definition of Steady State:
@@ -56,7 +54,6 @@ import ast
 
 import numpy as np
 
-
 EXCURSION_THRESHOLD = 0.1
 
 
@@ -72,9 +69,11 @@ def main():
     measurement_window_size = int(sys.argv[2])
 
     if len(values) < measurement_window_size:
-        print('Not enough input values (< %d): %s'
-              % (measurement_window_size, values))
-        exit(1)
+        print(
+            'Not enough input values (< %d): %s' % (measurement_window_size,
+                                                    values),
+            file=sys.stderr)
+        sys.exit(1)
 
     values_in_window = values[-1 * measurement_window_size:]
     print("values in window:", values_in_window)
@@ -84,9 +83,9 @@ def main():
     excursion_down = avg_val * (1 - EXCURSION_THRESHOLD)
 
     if max(values_in_window) > excursion_up:
-        exit(1)
+        sys.exit(1)
     if min(values_in_window) < excursion_down:
-        exit(1)
+        sys.exit(1)
 
     # get rounds for the corresponding values in window; round starts from 1.
     rounds = range(len(values) - measurement_window_size + 1, len(values) + 1)
@@ -96,11 +95,11 @@ def main():
     poly_vals = poly([rounds[0], rounds[measurement_window_size - 1]])
 
     if max(poly_vals) > excursion_up:
-        exit(1)
+        sys.exit(1)
     if min(poly_vals) < excursion_down:
-        exit(1)
+        sys.exit(1)
 
-    exit(0)
+    sys.exit()
 
 
 if __name__ == "__main__":

@@ -1,2 +1,3 @@
 # my-awesome-scripts
-The scripts that used in my work
+
+Collection of scripts used in my projects
