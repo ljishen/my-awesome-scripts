@@ -73,7 +73,7 @@ else
     bind_address="${bind_address%:*}"
   fi
 
-  # port number greater than 1024 requires root privilege.
+  # port number less than 1024 requires root privilege.
   # https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html
   # https://linux.die.net/man/1/ssh
   if [ "$port" -lt 1024 ]; then
@@ -90,7 +90,7 @@ else
     -N "$bind_address" \
     -R "$port":localhost:22 \
     < /dev/null \
-    > "$log_file" 2>&1
+    > "$log_file" 2>&1 &
   echo $! > "$PID_FILE"
   sleep 3
   if ! pgrep --pidfile "$PID_FILE" > /dev/null; then
