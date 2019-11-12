@@ -31,10 +31,9 @@ script="$(basename "$0")"
 args=("$@")
 
 function usage() {
-  printf "usage: %s [REMOTE] start|stop
-\\tREMOTE:\\t[user@]bind_address[:port]
+  printf "usage: %s <REMOTE> start|stop
 
-REMOTE is required when start this service.
+REMOTE:\\t[user@]bind_address[:port]
 
 " "$script"
   exit 1
@@ -74,7 +73,7 @@ else
     bind_address="${bind_address%:*}"
   fi
 
-  # privileged port requires root so it is not allowed.
+  # port number greater than 1024 requires root privilege.
   # https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html
   # https://linux.die.net/man/1/ssh
   if [ "$port" -lt 1024 ]; then
@@ -104,4 +103,4 @@ else
     "$port" "$(cat "$PID_FILE")"
 fi
 
-printf "Command completed succeeded.\\n\\n"
+printf "Command has completed successfully.\\n\\n"
