@@ -86,7 +86,10 @@ else
   fi
 
   log_file="/tmp/ssh_fw.log"
-  nohup ssh -o PasswordAuthentication=no \
+  nohup ssh \
+    -o PasswordAuthentication=no \
+    -o ExitOnForwardFailure=yes \
+    -o ServerAliveInterval=60 \
     -N "$bind_address" \
     -R "$port":localhost:22 \
     < /dev/null \
