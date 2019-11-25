@@ -24,7 +24,7 @@
 
 set -eu -o pipefail
 
-if [ "$#" -ne 1 ]; then
+if [[ "$#" -ne 1 ]]; then
   cat <<- ENDOFMESSAGE
 Usage: $0 BLOCK_DEVICE
 
@@ -40,13 +40,13 @@ ENDOFMESSAGE
   exit
 fi
 
-if [ "$EUID" -ne 0 ]; then
+if [[ "$EUID" -ne 0 ]]; then
   echo "This script must be run as root!"
   exit 1
 fi
 
 device="$1"
-if [ ! -b "$device" ]; then
+if [[ ! -b "$device" ]]; then
   echo "$device is not a block device"
   exit 2
 fi
@@ -54,22 +54,22 @@ fi
 total_sectors="$(blockdev --getsz "$device")"
 echo "total $total_sectors 512-byte sectors on device $device"
 
-MAXSECT=65535
+SECTOR_COUNT=65535
 
-sectors="$total_sectors"
+remain_sectors="$total_sectors"
 pos=0
 
-while [ "$sectors" -gt 0 ]; do
-  if [ "$sectors" -gt "$MAXSECT" ]; then
-    size="$MAXSECT"
+while [[ "$remain_sectors" -gt 0 ]]; do
+  if [ "$remain_sectors" -gt "$SECTOR_COUNT" ]; then
+    sectors="$SECTOR_COUNT"
   else
-    size="$sectors"
+    sectors="$remain_sectors"
   fi
 
-  hdparm --please-destroy-my-drive --trim-sector-ranges "$pos":"$size" "$device" > /dev/null
+  hdparm --please-destroy-my-drive --trim-sector-ranges "$pos":"$sectors" "$device" > /dev/null
 
-  sectors=$((sectors - size))
-  pos=$((pos + size))
+  remain_sectors=$((remain_sectors - sectors))
+  pos=$((pos + sectors))
 done
 
 echo "successfully trimmed all $total_sectors sectors"
