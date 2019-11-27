@@ -52,7 +52,7 @@ if [[ ! -b "$device" ]]; then
 fi
 
 total_sectors="$(blockdev --getsz "$device")"
-echo "total $total_sectors 512-byte sectors on device $device"
+echo "Trimming a total $total_sectors 512-byte sectors on device $device..."
 
 SECTOR_COUNT=65535
 
