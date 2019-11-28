@@ -59,6 +59,8 @@ SECTOR_COUNT=65535
 remain_sectors="$total_sectors"
 pos=0
 
+echo -en "\033[0;31m Progress 0% ([$pos/$total_sectors])\033[0m"
+
 while [[ "$remain_sectors" -gt 0 ]]; do
   if [ "$remain_sectors" -gt "$SECTOR_COUNT" ]; then
     sectors="$SECTOR_COUNT"
@@ -70,8 +72,9 @@ while [[ "$remain_sectors" -gt 0 ]]; do
 
   remain_sectors=$((remain_sectors - sectors))
   pos=$((pos + sectors))
+
+  percentage=$((pos * 100 / total_sectors))
+  echo -en "\e[0K\r\033[0;31m Progress $percentage% ([$pos/$total_sectors])\033[0m"
 done
 
-echo "successfully trimmed all $total_sectors sectors"
-
-printf "\\ndone!\\n"
+printf "\\nDone!\\n"
