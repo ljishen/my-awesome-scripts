@@ -42,7 +42,7 @@ Note that the length of measurement window is 5 according to the PTS
 
 
 Usage:
-    verify_ss.py LIST WINDOW_SIZE
+    verify_steady_state.py LIST WINDOW_SIZE
 
 LIST        the values in list
 WINDOW_SIZE the number of last values in LIST used for steady state detection
@@ -69,10 +69,9 @@ def main():
     measurement_window_size = int(sys.argv[2])
 
     if len(values) < measurement_window_size:
-        print(
-            'Not enough input values (< %d): %s' % (measurement_window_size,
-                                                    values),
-            file=sys.stderr)
+        print('Not enough input values (< %d): %s' %
+              (measurement_window_size, values),
+              file=sys.stderr)
         sys.exit(1)
 
     values_in_window = values[-1 * measurement_window_size:]
