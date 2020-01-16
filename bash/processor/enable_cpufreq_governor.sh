@@ -90,4 +90,4 @@ for c in "${online_cpus[@]}"; do
   echo "$gov" > "$BASE_DIR"/cpu"$c"/cpufreq/scaling_governor
 done
 
-echo "Successfully updated scaling governor for CPUs [$online_line]."
+echo "Successfully set scaling governor to \"$gov\" for CPUs [$online_line]."
