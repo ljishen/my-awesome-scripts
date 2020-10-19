@@ -2,16 +2,13 @@
 
 [Unit]
 Description=Remote SSH Login Service
-Wants=network-online.target nss-lookup.target
-Before=nss-lookup.target
-After=network-online.target
+After=systemd-networkd-wait-online.service
+Requires=systemd-networkd-wait-online.service
 
 [Service]
 Type=oneshot
-ExecStartPre=/bin/sleep 20
-ExecStart=/home/pi/bin/my-awesome-scripts/bash/network/ssh_fw.sh ljishen@piha.soe.ucsc.edu start
+ExecStart=/home/pi/bin/my-awesome-scripts/bash/network/ssh_fw.sh ljishen@piha.soe.ucsc.edu
 RemainAfterExit=true
-WorkingDirectory=/home/pi
 StandardOutput=inherit
 StandardError=inherit
 User=pi
