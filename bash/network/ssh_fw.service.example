@@ -2,13 +2,14 @@
 
 [Unit]
 Description=Remote SSH Login Service
-After=systemd-networkd-wait-online.service
-Requires=systemd-networkd-wait-online.service
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
+ExecStartPre=/bin/bash -c "until host google.com; do sleep 1; done"
 ExecStart=/home/pi/bin/my-awesome-scripts/bash/network/ssh_fw.sh ljishen@piha.soe.ucsc.edu
-RemainAfterExit=true
+RemainAfterExit=yes
 StandardOutput=inherit
 StandardError=inherit
 User=pi
