@@ -98,6 +98,8 @@ else
 
   log_file="/tmp/${script_name%.*}.log"
   stdbuf -oL nohup ssh \
+    -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null \
     -o PasswordAuthentication=no \
     -o ExitOnForwardFailure=yes \
     -o ServerAliveInterval=60 \
