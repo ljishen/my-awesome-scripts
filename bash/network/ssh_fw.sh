@@ -22,101 +22,127 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Run this script on the host that you want to forward the SSH connection
+# Run this script on the host where you want to forward the SSH connection
 # (port 22) to from the remote address.
 
-set -eu -o pipefail
+set -euo pipefail
 
-script_name="$(basename "$0")"
-args=("$@")
-
-function usage() {
-  printf "usage: %s [REMOTE_HOST] [SSH_OPTIONS] [stop]
-
-REMOTE_HOST: [user@]bind_address[:port]
-
-Examples:
-  # start forwarding with a specified identity file
-  ./%s user@piha.soe.ucsc.edu:8111 -i \"$HOME/.ssh/id_rsa\"
-
-  # stop forwarding by killing the forwarding ssh process
-  ./%s stop
-
-" "$script_name" "$script_name" "$script_name"
-  exit 1
+info() { printf "\\033[1;32m[INFO] %s\\033[0m\\n" "$*"; }
+err() {
+  local -r exit_status="$1"
+  shift
+  printf "\\033[1;31m[ERROR] %s\\033[0m\\n" "$*" >&2
+  exit "$exit_status"
 }
 
-args_len="${#args[@]}"
-if [[ "$args_len" -lt 1 ]]; then
-  # case with one parameter: ssh_fw.sh stop
+# https://stackoverflow.com/a/51548669
+shopt -s expand_aliases
+alias trace_off="{ set +x; } 2>/dev/null"
+alias trace_on="trace_off; echo; set -x"
+export PS4='# ${BASH_SOURCE:-"$0"}:${LINENO} - ${FUNCNAME[0]:+${FUNCNAME[0]}()} > '
+
+
+readonly SCRIPT_NAME="$(basename "$0")"
+
+usage() {
+  cat <<EOF
+Usage: $SCRIPT_NAME [REMOTE_HOST [SSH_OPTIONS]] [stop]
+       REMOTE_HOST := [user@]bind_address[:port]
+
+Default port number is 8111.
+
+Examples:
+  # start ssh forwarding from example.com:8111 to localhost:22
+  # using the given identity file
+  ./$SCRIPT_NAME user@example.com:8111 -i $HOME/.ssh/id_rsa
+
+  # stop ssh forwarding by killing the process
+  ./$SCRIPT_NAME stop
+
+EOF
+  exit
+}
+
+if (( $# < 1 )); then
+  # case with only one parameter: ./$SCRIPT_NAME stop
   usage
 fi
 
-pid_file="$HOME/.${script_name%.*}_pid"
-action="${args[-1]}"
+readonly PID_FILE="$HOME/.${SCRIPT_NAME%.*}.pid"
 
-if [[ "$action" == "stop" ]]; then
-  if [[ -f "$pid_file" ]]; then
-    exit_status=0
-    pkill --signal SIGTERM --pidfile "$pid_file" || exit_status=$?
-    if [[ "$exit_status" -eq 0 ]]; then
-      echo "Terminated PID $(cat "$pid_file")"
-      rm -f "$pid_file"
+pid() { cat "$PID_FILE"; }
+
+do_stop() {
+  if [[ -f "$PID_FILE" ]]; then
+    local exit_status=0
+    trace_on
+    pkill --signal SIGTERM --pidfile "$PID_FILE" || exit_status=$?
+    trace_off
+    if (( exit_status == 0 )); then
+      info "Terminated PID $(pid)"
+      rm -f "$PID_FILE"
     else
-      echo "Fail to terminate PID $(cat "$pid_file")"
-      exit "$exit_status"
+      err "$exit_status" "Fail to terminate PID $(pid)"
     fi
   else
-    echo "pidfile $pid_file does not exist!"
-    exit 2
+    err 2 "pidfile $PID_FILE does not exist!"
   fi
-else
-  # action start
+}
 
-  if [[ "$args_len" -lt 1 ]]; then
-    usage
-  fi
-
-  bind_address="${args[0]}"
-  port=8111
+do_forward() {
+  local bind_address="$1"
+  local port=8111
   if [[ $bind_address == *:* ]]; then
-    port="$(grep -oP ':\K\d+' <<< "$bind_address")"
+    port="${bind_address##*:}"
+    if ! [[ "$port" =~ ^[0-9]+$ ]]; then
+      err 1 "Invalid port number $port"
+    fi
     bind_address="${bind_address%:*}"
   fi
 
-  # port number less than 1024 requires root privilege.
+  # port number < 1024 requires root privileges.
   # https://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html
   # https://linux.die.net/man/1/ssh
-  if [[ "$port" -lt 1024 ]]; then
+  if (( port < 1024 )); then
     if [[ "$EUID" -ne 0 ]]; then
-      printf "Forwarding to privileged port (1-1023) requires sudo.\\n\\n"
-      exit 3
+      err 2 "Forwarding to privileged port (1-1023) requires sudo privileges."
+    else
+      info "WARNING: forwarding to privileged port does not guarantee to work."
     fi
-
-    echo "WARNING: forwarding to privileged port is not guaranteed to work."
   fi
 
-  log_file="/tmp/${script_name%.*}.log"
+  local -r log_file="/tmp/${SCRIPT_NAME%.*}.log"
+  trace_on
   stdbuf -oL nohup ssh \
     -o StrictHostKeyChecking=no \
     -o UserKnownHostsFile=/dev/null \
+    -o GlobalKnownHostsFile=/dev/null \
     -o PasswordAuthentication=no \
     -o ExitOnForwardFailure=yes \
     -o ServerAliveInterval=60 \
     -N "$bind_address" \
     -R "$port":localhost:22 \
-    "${args[@]:1}" \
+    "${@:2}" \
     < /dev/null \
     >"$log_file" 2>&1 &
-  echo $! >"$pid_file"
+  echo $! >"$PID_FILE"
+  trace_off
+
   sleep 3
-  if ! pgrep --pidfile "$pid_file" >/dev/null; then
+  if ! pgrep --pidfile "$PID_FILE" >/dev/null; then
     cat "$log_file"
     echo
-    wait "$(cat "$pid_file")"
+    wait "$(pid)"
     exit $!
   fi
 
-  printf "Remote SSH port forwarding (remote %d -> local 22) is running (PID %d).\\n" \
-    "$port" "$(cat "$pid_file")"
+  info "Remote SSH port forwarding (remote $port -> local 22) is running (PID $(pid))."
+}
+
+
+readonly ACTION="${*: -1}"
+if [[ "$ACTION" == "stop" ]]; then
+  do_stop
+else
+  do_forward "$@"
 fi
