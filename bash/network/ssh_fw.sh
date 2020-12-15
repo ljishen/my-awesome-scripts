@@ -37,8 +37,8 @@ err() {
 
 # https://stackoverflow.com/a/51548669
 shopt -s expand_aliases
+alias trace_on="{ echo; } 2>/dev/null; set -x"
 alias trace_off="{ set +x; } 2>/dev/null"
-alias trace_on="trace_off; echo; set -x"
 export PS4='# ${BASH_SOURCE:-"$0"}:${LINENO} - ${FUNCNAME[0]:+${FUNCNAME[0]}()} > '
 
 
