@@ -8,7 +8,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 ExecStartPre=/bin/bash -c "until host google.com; do sleep 1; done"
-ExecStart=/home/pi/bin/my-awesome-scripts/bash/network/ssh_fw.sh ljishen@piha.soe.ucsc.edu
+ExecStart=/home/pi/bin/my-awesome-scripts/bash/network/ssh_fw/ssh_fw.sh ljishen@piha.soe.ucsc.edu
 RemainAfterExit=yes
 StandardOutput=inherit
 StandardError=inherit
