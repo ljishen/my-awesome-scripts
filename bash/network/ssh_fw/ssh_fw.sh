@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2018 Jianshen Liu
+# Copyright (c) 2020 Jianshen Liu
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,7 @@ set -euo pipefail
 
 info() { printf "\\033[1;32m[INFO] %s\\033[0m\\n" "$*"; }
 err() {
-  local -r exit_status="$1"
+  local -ir exit_status="$1"
   shift
   printf "\\033[1;31m[ERROR] %s\\033[0m\\n" "$*" >&2
   exit "$exit_status"
@@ -74,7 +74,7 @@ pid() { cat "$PID_FILE"; }
 
 do_stop() {
   if [[ -f "$PID_FILE" ]]; then
-    local exit_status=0
+    local -i exit_status=0
     trace_on
     pkill --signal SIGTERM --pidfile "$PID_FILE" || exit_status=$?
     trace_off
